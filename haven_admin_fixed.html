@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haven — لوحة التحكم</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+  :root {
+    --bg:       #0a0a0a;
+    --surface:  #111;
+    --surface2: #1a1a1a;
+    --border:   #222;
+    --text:     #e0e0e0;
+    --muted:    #666;
+    --blue:     #3897f0;
+    --green:    #2ecc71;
+    --red:      #e74c3c;
+    --amber:    #f39c12;
+    --radius:   10px;
+  }
+  body {
+    font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; font-size: 14px; line-height: 1.6;
+  }
+
+  /* ─── Sidebar ─── */
+  .layout { display: flex; min-height: 100vh }
+  .sidebar {
+    width: 220px; background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; top: 0; right: 0;
+    height: 100vh; z-index: 100; transition: transform .25s;
+  }
+  .sidebar-logo {
+    padding: 20px 18px 16px; border-bottom: 1px solid var(--border);
+    font-size: 22px; font-weight: 700; letter-spacing: 1px; color: #fff;
+  }
+  .sidebar-logo span { color: var(--blue) }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px; cursor: pointer; border-radius: 0;
+    color: var(--muted); font-size: 14px; transition: all .15s;
+    border: none; background: none; width: 100%; text-align: right;
+  }
+  .nav-item:hover  { background: var(--surface2); color: var(--text) }
+  .nav-item.active { background: var(--surface2); color: #fff; border-right: 3px solid var(--blue) }
+  .nav-icon { font-size: 18px; width: 20px; text-align: center }
+
+  /* ─── Main ─── */
+  .main { margin-right: 220px; flex: 1; display: flex; flex-direction: column }
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title { font-size: 16px; font-weight: 600; color: #fff }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+    display: inline-block; margin-left: 6px;
+  }
+  .content { padding: 24px; flex: 1 }
+
+  /* ─── Stats cards ─── */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px; margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 16px;
+  }
+  .stat-label { color: var(--muted); font-size: 12px; margin-bottom: 6px }
+  .stat-value { font-size: 26px; font-weight: 700; color: #fff }
+  .stat-value.blue   { color: var(--blue) }
+  .stat-value.green  { color: var(--green) }
+  .stat-value.red    { color: var(--red) }
+  .stat-value.amber  { color: var(--amber) }
+
+  /* ─── Sections ─── */
+  .section { display: none }
+  .section.active { display: block }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title { font-size: 16px; font-weight: 600; color: #fff }
+
+  /* ─── Table ─── */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse }
+  th {
+    background: var(--surface2); color: var(--muted);
+    font-size: 12px; font-weight: 500; padding: 10px 14px;
+    text-align: right; border-bottom: 1px solid var(--border);
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle }
+  tr:last-child td { border-bottom: none }
+  tr:hover td { background: rgba(255,255,255,.02) }
+
+  .avatar-cell { display: flex; align-items: center; gap: 10px }
+  .avatar-img {
+    width: 34px; height: 34px; border-radius: 50%;
+    object-fit: cover; background: var(--surface2); flex-shrink: 0;
+  }
+  .avatar-name { font-weight: 500; color: #fff }
+  .avatar-sub  { font-size: 12px; color: var(--muted) }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  }
+  .badge-green  { background: rgba(46,204,113,.15); color: var(--green) }
+  .badge-blue   { background: rgba(56,151,240,.15); color: var(--blue) }
+  .badge-red    { background: rgba(231,76,60,.15);  color: var(--red) }
+  .badge-amber  { background: rgba(243,156,18,.15); color: var(--amber) }
+  .badge-gray   { background: rgba(255,255,255,.08); color: var(--muted) }
+
+  /* ─── Buttons ─── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all .15s; white-space: nowrap;
+  }
+  .btn:disabled { opacity: .4; cursor: not-allowed }
+  .btn-blue  { background: var(--blue);  color: #fff }
+  .btn-blue:hover:not(:disabled)  { background: #2a80d0 }
+  .btn-green { background: var(--green); color: #fff }
+  .btn-green:hover:not(:disabled) { background: #27ae60 }
+  .btn-red   { background: var(--red);   color: #fff }
+  .btn-red:hover:not(:disabled)   { background: #c0392b }
+  .btn-ghost {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text) }
+  .btn-sm { padding: 5px 10px; font-size: 12px }
+
+  .actions-cell { display: flex; gap: 6px; flex-wrap: wrap }
+
+  /* ─── Search / Filter bar ─── */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap }
+  .search-input {
+    flex: 1; min-width: 180px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; color: var(--text); font-size: 13px;
+    outline: none; transition: border .15s;
+  }
+  .search-input:focus { border-color: var(--blue) }
+  .search-input::placeholder { color: var(--muted) }
+  select.search-input { cursor: pointer }
+
+  /* ─── Toast ─── */
+  .toast-container {
+    position: fixed; bottom: 20px; left: 20px;
+    display: flex; flex-direction: column; gap: 8px; z-index: 999;
+  }
+  .toast {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px; font-size: 13px;
+    max-width: 280px; animation: slideIn .2s ease;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.success { border-color: var(--green); color: var(--green) }
+  .toast.error   { border-color: var(--red);   color: var(--red) }
+  @keyframes slideIn { from { transform: translateY(20px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+
+  /* ─── Modal ─── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; width: 90%; max-width: 420px;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 10px }
+  .modal-body  { color: var(--muted); font-size: 14px; line-height: 1.7; margin-bottom: 20px }
+  .modal-footer{ display: flex; gap: 10px; justify-content: flex-end }
+
+  /* ─── Loading ─── */
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.2);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  .loading-row td { text-align: center; padding: 30px; color: var(--muted) }
+  .empty-row td { text-align: center; padding: 30px; color: var(--muted); font-size: 13px }
+
+  /* ─── Mobile ─── */
+  .hamburger {
+    display: none; background: none; border: none;
+    color: #fff; font-size: 22px; cursor: pointer; padding: 4px;
+  }
+  @media (max-width: 700px) {
+    .sidebar {
+      transform: translateX(100%);
+      box-shadow: -4px 0 20px rgba(0,0,0,.5);
+    }
+    .sidebar.open { transform: translateX(0) }
+    .main { margin-right: 0 }
+    .hamburger { display: block }
+    .stats-grid { grid-template-columns: 1fr 1fr }
+    .actions-cell { flex-direction: column }
+    table { font-size: 13px }
+    td, th { padding: 8px 10px }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">Haven <span>Admin</span></div>
+    <button class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">📊</span> لوحة المعلومات
+    </button>
+    <button class="nav-item" onclick="showSection('users')" id="nav-users">
+      <span class="nav-icon">👥</span> المستخدمون
+    </button>
+    <button class="nav-item" onclick="showSection('reports')" id="nav-reports">
+      <span class="nav-icon">🚩</span> البلاغات
+      <span class="badge badge-red" id="reports-badge" style="margin-right:auto;display:none"></span>
+    </button>
+    <button class="nav-item" onclick="showSection('channels')" id="nav-channels">
+      <span class="nav-icon">📢</span> القنوات
+    </button>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <span class="topbar-title" id="topbar-title">لوحة المعلومات</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">
+        <span class="status-dot" id="conn-dot" style="background:var(--amber)"></span>
+        <span id="conn-label">جاري الاتصال...</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── Dashboard ── -->
+      <section class="section active" id="section-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">إجمالي المستخدمين</div>
+            <div class="stat-value blue" id="stat-users">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">حسابات موثقة</div>
+            <div class="stat-value green" id="stat-verified">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">بلاغات معلقة</div>
+            <div class="stat-value amber" id="stat-reports">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">قنوات نشطة</div>
+            <div class="stat-value" id="stat-channels">—</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">أحدث المستخدمين</span>
+          <button class="btn btn-ghost btn-sm" onclick="showSection('users')">عرض الكل</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>المستخدم</th><th>تاريخ التسجيل</th><th>متابعون</th><th>الحالة</th></tr>
+            </thead>
+            <tbody id="recent-users-body">
+              <tr class="loading-row"><td colspan="4"><span class="spinner"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Users ── -->
+      <section class="section" id="section-users">
+        <div class="toolbar">
+          <input class="search-input" type="text" id="users-search"
+            placeholder="بحث باسم المستخدم أو البريد..." oninput="filterUsers()">
+          <select class="search-input" id="users-filter" onchange="filterUsers()" style="max-width:160px">
+            <option value="all">الكل</option>
+            <option value="verified">موثق</option>
+            <option value="unverified">غير موثق</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadUsers()">🔄 تحديث</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>المستخدم</th><th>وافق على الميثاق</th><th>متابعون</th><th>التوثيق</th><th>إجراءات</th></tr>
+            </thead>
+            <tbody id="users-body">
+              <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Reports ── -->
+      <section class="section" id="section-reports">
+        <div class="toolbar">
+          <select class="search-input" id="reports-filter" onchange="filterReports()" style="max-width:180px">
+            <option value="all">كل البلاغات</option>
+            <option value="pending">معلق</option>
+            <option value="resolved">محلول</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadReports()">🔄 تحديث</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>المُبلَّغ عنه</th><th>السبب</th><th>المُبلِّغ</th><th>التاريخ</th><th>الحالة</th><th>إجراءات</th></tr>
+            </thead>
+            <tbody id="reports-body">
+              <tr class="loading-row"><td colspan="6"><span class="spinner"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Channels ── -->
+      <section class="section" id="section-channels">
+        <div class="toolbar">
+          <input class="search-input" type="text" id="channels-search"
+            placeholder="بحث باسم القناة..." oninput="filterChannels()">
+          <button class="btn btn-ghost btn-sm" onclick="loadChannels()">🔄 تحديث</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>القناة</th><th>المالك</th><th>المشتركون</th><th>تاريخ الإنشاء</th><th>إجراءات</th></tr>
+            </thead>
+            <tbody id="channels-body">
+              <tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">تأكيد الإجراء</div>
+    <div class="modal-body"  id="modal-body">هل أنت متأكد؟</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-red"   id="modal-confirm-btn" onclick="confirmAction()">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL     = 'https://vfeikjpqjnyfxqbdgmqx.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZWlranBxam55ZnhxYmRnbXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNDY3NTIsImV4cCI6MjA5MzkyMjc1Mn0.Jw_0wDwVgacwDHOpXwG4HbxleIzFVk4jsuZ2sjG8ppU'
+
+const H = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }
+
+// ─── API helpers ──────────────────────────────────────────────
+async function sbGet(path) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: H })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+async function sbPatch(table, id, data) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'PATCH', headers: H, body: JSON.stringify(data)
+  })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+async function sbDelete(table, id) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'DELETE', headers: H
+  })
+  if (!r.ok) throw new Error(await r.text())
+}
+async function sbCount(table) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=id`, {
+    headers: { ...H, 'Prefer': 'count=exact', 'Range': '0-0' }
+  })
+  return parseInt(r.headers.get('Content-Range')?.split('/')[1] || '0')
+}
+
+// ─── State ───────────────────────────────────────────────────
+let allUsers = [], allReports = [], allChannels = []
+let pendingAction = null
+
+// ─── Toast ───────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const c  = document.getElementById('toast-container')
+  const el = document.createElement('div')
+  el.className = `toast ${type}`
+  el.innerHTML = (type === 'success' ? '✅' : '❌') + ' ' + msg
+  c.appendChild(el)
+  setTimeout(() => el.remove(), 3500)
+}
+
+// ─── Modal ───────────────────────────────────────────────────
+function openModal(title, body, action, btnLabel = 'تأكيد', btnClass = 'btn-red') {
+  document.getElementById('modal-title').textContent = title
+  document.getElementById('modal-body').textContent  = body
+  const btn = document.getElementById('modal-confirm-btn')
+  btn.textContent = btnLabel
+  btn.className   = `btn ${btnClass}`
+  pendingAction   = action
+  document.getElementById('confirm-modal').classList.add('open')
+}
+function closeModal() {
+  document.getElementById('confirm-modal').classList.remove('open')
+  pendingAction = null
+}
+async function confirmAction() {
+  if (!pendingAction) return
+  closeModal()
+  await pendingAction()
+}
+
+// ─── Navigation ──────────────────────────────────────────────
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  document.getElementById(`section-${name}`).classList.add('active')
+  document.getElementById(`nav-${name}`).classList.add('active')
+  const titles = { dashboard:'لوحة المعلومات', users:'المستخدمون', reports:'البلاغات', channels:'القنوات' }
+  document.getElementById('topbar-title').textContent = titles[name]
+  if (window.innerWidth <= 700) document.getElementById('sidebar').classList.remove('open')
+  if (name === 'users'    && allUsers.length    === 0) loadUsers()
+  if (name === 'reports'  && allReports.length  === 0) loadReports()
+  if (name === 'channels' && allChannels.length === 0) loadChannels()
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open')
+}
+
+// ─── Utilities ───────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('ar', { year:'numeric', month:'short', day:'numeric' })
+}
+function avatar(url, name) {
+  const src = url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name||'?')}&background=222&color=aaa&size=68`
+  return `<img class="avatar-img" src="${src}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(name||'?')}&background=222&color=aaa'">`
+}
+
+// ─── Dashboard ───────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [users, verified, channels] = await Promise.all([
+      sbCount('profiles'),
+      sbGet('profiles?is_verified=eq.true&select=id'),
+      sbCount('channels'),
+    ])
+    let pendingReports = 0
+    try {
+      const reps = await sbGet('reports?status=eq.pending&select=id')
+      pendingReports = reps.length
+    } catch {}
+
+    document.getElementById('stat-users').textContent    = users.toLocaleString('ar')
+    document.getElementById('stat-verified').textContent = verified.length.toLocaleString('ar')
+    document.getElementById('stat-reports').textContent  = pendingReports.toLocaleString('ar')
+    document.getElementById('stat-channels').textContent = channels.toLocaleString('ar')
+
+    if (pendingReports > 0) {
+      const b = document.getElementById('reports-badge')
+      b.textContent = pendingReports; b.style.display = ''
+    }
+
+    // Recent users
+    const recent = await sbGet('profiles?select=id,username,full_name,avatar_url,created_at,followers_count,is_verified&order=created_at.desc&limit=6')
+    const tbody  = document.getElementById('recent-users-body')
+    if (!recent.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">لا يوجد مستخدمون بعد</td></tr>'; return }
+    tbody.innerHTML = recent.map(u => `
+      <tr>
+        <td><div class="avatar-cell">${avatar(u.avatar_url, u.username)}
+          <div><div class="avatar-name">${u.username||'—'}</div>
+          <div class="avatar-sub">${u.full_name||''}</div></div></div></td>
+        <td>${fmtDate(u.created_at)}</td>
+        <td>${(u.followers_count||0).toLocaleString('ar')}</td>
+        <td>${u.is_verified
+          ? '<span class="badge badge-green">✓ موثق</span>'
+          : '<span class="badge badge-gray">غير موثق</span>'}</td>
+      </tr>`).join('')
+
+    document.getElementById('conn-dot').style.background = 'var(--green)'
+    document.getElementById('conn-label').textContent = 'متصل'
+  } catch (e) {
+    document.getElementById('conn-dot').style.background = 'var(--red)'
+    document.getElementById('conn-label').textContent = 'خطأ في الاتصال'
+    toast('فشل تحميل البيانات: ' + e.message, 'error')
+  }
+}
+
+// ─── Users ───────────────────────────────────────────────────
+async function loadUsers() {
+  document.getElementById('users-body').innerHTML =
+    '<tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>'
+  try {
+    allUsers = await sbGet('profiles?select=id,username,full_name,contact,avatar_url,created_at,followers_count,is_verified,dignity_accepted&order=created_at.desc&limit=200')
+    renderUsers(allUsers)
+  } catch (e) { toast('خطأ في تحميل المستخدمين: ' + e.message, 'error') }
+}
+
+function renderUsers(list) {
+  const tbody = document.getElementById('users-body')
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">لا توجد نتائج</td></tr>'; return }
+  tbody.innerHTML = list.map(u => `
+    <tr id="user-row-${u.id}">
+      <td><div class="avatar-cell">${avatar(u.avatar_url, u.username)}
+        <div><div class="avatar-name">${u.username||'—'}</div>
+        <div class="avatar-sub">${u.contact||u.full_name||''}</div></div></div></td>
+      <td>${u.dignity_accepted
+        ? '<span class="badge badge-green">✓ وافق</span>'
+        : '<span class="badge badge-amber">لم يوافق</span>'}</td>
+      <td>${(u.followers_count||0).toLocaleString('ar')}</td>
+      <td>${u.is_verified
+        ? '<span class="badge badge-blue">✓ موثق</span>'
+        : '<span class="badge badge-gray">—</span>'}</td>
+      <td><div class="actions-cell">
+        ${!u.is_verified ? `<button class="btn btn-green btn-sm" onclick="verifyUser('${u.id}','${u.username}')">✓ منح التوثيق</button>` : ''}
+        <button class="btn btn-red btn-sm" onclick="banUser('${u.id}','${u.username}')">🚫 حظر</button>
+      </div></td>
+    </tr>`).join('')
+}
+
+function filterUsers() {
+  const q      = document.getElementById('users-search').value.toLowerCase()
+  const filter = document.getElementById('users-filter').value
+  const res = allUsers.filter(u => {
+    const matchQ = !q || (u.username||'').toLowerCase().includes(q) || (u.contact||'').toLowerCase().includes(q)
+    const matchF = filter === 'all' || (filter === 'verified' && u.is_verified) || (filter === 'unverified' && !u.is_verified)
+    return matchQ && matchF
+  })
+  renderUsers(res)
+}
+
+async function verifyUser(id, name) {
+  openModal('منح التوثيق', `هل تريد منح التوثيق للحساب @${name}؟`, async () => {
+    try {
+      await sbPatch('profiles', id, { is_verified: true })
+      allUsers = allUsers.map(u => u.id === id ? { ...u, is_verified: true } : u)
+      filterUsers(); toast(`تم توثيق @${name} بنجاح`)
+      loadDashboard()
+    } catch (e) { toast('فشل التوثيق: ' + e.message, 'error') }
+  }, 'منح التوثيق', 'btn-green')
+}
+
+async function banUser(id, name) {
+  openModal('حظر الحساب', `سيتم حذف بيانات الحساب @${name} نهائياً. هذا الإجراء لا يمكن التراجع عنه.`, async () => {
+    try {
+      await sbDelete('profiles', id)
+      allUsers = allUsers.filter(u => u.id !== id)
+      filterUsers(); toast(`تم حذف الحساب @${name}`)
+      loadDashboard()
+    } catch (e) { toast('فشل الحذف: ' + e.message, 'error') }
+  })
+}
+
+// ─── Reports ─────────────────────────────────────────────────
+async function loadReports() {
+  document.getElementById('reports-body').innerHTML =
+    '<tr class="loading-row"><td colspan="6"><span class="spinner"></span></td></tr>'
+  try {
+    allReports = await sbGet('reports?select=*,reported_profile:reported_id(username,avatar_url),reporter_profile:reporter_id(username)&order=created_at.desc&limit=200')
+    renderReports(allReports)
+  } catch (e) {
+    // جدول reports قد لا يكون موجوداً بعد
+    document.getElementById('reports-body').innerHTML =
+      '<tr class="empty-row"><td colspan="6">جدول البلاغات غير موجود أو فارغ</td></tr>'
+  }
+}
+
+function renderReports(list) {
+  const tbody = document.getElementById('reports-body')
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">لا توجد بلاغات</td></tr>'; return }
+  tbody.innerHTML = list.map(r => `
+    <tr id="report-row-${r.id}">
+      <td><div class="avatar-cell">${avatar(r.reported_profile?.avatar_url, r.reported_profile?.username)}
+        <div class="avatar-name">@${r.reported_profile?.username||'—'}</div></div></td>
+      <td>${r.reason||'—'}</td>
+      <td>@${r.reporter_profile?.username||'—'}</td>
+      <td>${fmtDate(r.created_at)}</td>
+      <td>${r.status === 'resolved'
+        ? '<span class="badge badge-green">محلول</span>'
+        : '<span class="badge badge-amber">معلق</span>'}</td>
+      <td><div class="actions-cell">
+        ${r.status !== 'resolved'
+          ? `<button class="btn btn-blue btn-sm" onclick="resolveReport('${r.id}')">✓ تم الحل</button>` : ''}
+        ${r.reported_id
+          ? `<button class="btn btn-red btn-sm" onclick="banUser('${r.reported_id}','${r.reported_profile?.username||r.reported_id}')">🚫 حظر</button>` : ''}
+      </div></td>
+    </tr>`).join('')
+}
+
+function filterReports() {
+  const f = document.getElementById('reports-filter').value
+  const res = f === 'all' ? allReports : allReports.filter(r => r.status === f)
+  renderReports(res)
+}
+
+async function resolveReport(id) {
+  try {
+    await sbPatch('reports', id, { status: 'resolved' })
+    allReports = allReports.map(r => r.id === id ? { ...r, status: 'resolved' } : r)
+    filterReports(); toast('تم تعليم البلاغ كمحلول')
+    loadDashboard()
+  } catch (e) { toast('فشل التحديث: ' + e.message, 'error') }
+}
+
+// ─── Channels ────────────────────────────────────────────────
+async function loadChannels() {
+  document.getElementById('channels-body').innerHTML =
+    '<tr class="loading-row"><td colspan="5"><span class="spinner"></span></td></tr>'
+  try {
+    allChannels = await sbGet('channels?select=*,profiles:user_id(username,avatar_url)&order=created_at.desc&limit=200')
+    renderChannels(allChannels)
+  } catch (e) { toast('خطأ في تحميل القنوات: ' + e.message, 'error') }
+}
+
+function renderChannels(list) {
+  const tbody = document.getElementById('channels-body')
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">لا توجد قنوات بعد</td></tr>'; return }
+  tbody.innerHTML = list.map(ch => `
+    <tr>
+      <td><div class="avatar-cell">
+        <div style="width:34px;height:34px;border-radius:50%;background:#0d1b2a;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📢</div>
+        <div><div class="avatar-name">${ch.name||'—'}</div>
+        <div class="avatar-sub">${ch.description||''}</div></div></div></td>
+      <td>@${ch.profiles?.username||'—'}</td>
+      <td>${(ch.subscribers||0).toLocaleString('ar')}</td>
+      <td>${fmtDate(ch.created_at)}</td>
+      <td><button class="btn btn-red btn-sm" onclick="deleteChannel('${ch.id}','${ch.name}')">🗑 حذف</button></td>
+    </tr>`).join('')
+}
+
+function filterChannels() {
+  const q = document.getElementById('channels-search').value.toLowerCase()
+  renderChannels(allChannels.filter(c => (c.name||'').toLowerCase().includes(q)))
+}
+
+async function deleteChannel(id, name) {
+  openModal('حذف القناة', `سيتم حذف القناة "${name}" نهائياً مع جميع منشوراتها.`, async () => {
+    try {
+      await sbDelete('channels', id)
+      allChannels = allChannels.filter(c => c.id !== id)
+      filterChannels(); toast(`تم حذف القناة "${name}"`)
+    } catch (e) { toast('فشل الحذف: ' + e.message, 'error') }
+  })
+}
+
+// ─── Init ────────────────────────────────────────────────────
+loadDashboard()
+document.getElementById('confirm-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal()
+})
+</script>
+</body>
+</html>
